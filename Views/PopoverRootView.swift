@@ -1,19 +1,18 @@
 import AppKit
-import Combine
 import SwiftUI
 
 /// Hosts the entire SwiftUI hierarchy shown inside the status-item popover.
 public struct PopoverRootView: View {
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    /// `@Bindable` exposes `$viewModel.property` binding syntax for an `@Observable` object.
+    @Bindable private var viewModel: SoundMixerViewModel
     @AppStorage("colorScheme") private var storedScheme = "system"
     @State private var showSettings = false
     @State private var showAbout = false
     @State private var clock = Date()
     @Environment(\.colorScheme) private var resolvedSystemScheme
 
-    /// Creates the root popover shell with optional navigation depth.
     public init(viewModel: SoundMixerViewModel) {
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
     }
 
     var height: CGFloat {
@@ -35,7 +34,11 @@ public struct PopoverRootView: View {
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(chromeMaterial)
-                .shadow(color: Color.black.opacity(effectiveColorScheme == .dark ? 0.45 : 0.12), radius: 16, y: 6)
+                .shadow(
+                    color: Color.black.opacity(effectiveColorScheme == .dark ? 0.45 : 0.12),
+                    radius: 16,
+                    y: 6
+                )
         }
         .frame(width: 320, height: height)
         .preferredColorScheme(effectiveSwiftUIScheme)
@@ -55,7 +58,7 @@ public struct PopoverRootView: View {
 }
 
 private extension PopoverRootView {
-    private var mixerPanel: some View {
+    var mixerPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HeaderView(
                 viewModel: viewModel,
@@ -78,15 +81,15 @@ private extension PopoverRootView {
         }
     }
 
-    private var chromeMaterial: Material {
+    var chromeMaterial: Material {
         effectiveColorScheme == .dark ? .ultraThinMaterial : .regularMaterial
     }
 
-    private var missingBundledSoundTitles: [String] {
+    var missingBundledSoundTitles: [String] {
         Sound.library.filter { !viewModel.isBufferAvailable(for: $0.id) }.map(\.name)
     }
 
-    private var missingAssetsBanner: some View {
+    var missingAssetsBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label {
                 Text(
@@ -96,23 +99,24 @@ private extension PopoverRootView {
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
-            Text(
-                "Missing: \(missingBundledSoundTitles.sorted().joined(separator: ", "))"
-            )
-            .font(.caption2)
-            .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.7))
-            .fixedSize(horizontal: false, vertical: true)
+            Text("Missing: \(missingBundledSoundTitles.sorted().joined(separator: ", "))")
+                .font(.caption2)
+                .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(hushChromeAccent(for: effectiveColorScheme).opacity(effectiveColorScheme == .dark ? 0.22 : 0.18))
+                .fill(
+                    hushChromeAccent(for: effectiveColorScheme)
+                        .opacity(effectiveColorScheme == .dark ? 0.22 : 0.18)
+                )
         )
         .accessibilityElement(children: .combine)
     }
 
-    private var masterVolumeRow: some View {
+    var masterVolumeRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Master volume")
                 .font(.footnote.weight(.medium))
@@ -130,7 +134,7 @@ private extension PopoverRootView {
         .foregroundStyle(primaryText(for: effectiveColorScheme))
     }
 
-    private var scrollContent: some View {
+    var scrollContent: some View {
         ScrollView(showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: 18) {
                 ForEach(SoundCategory.allCases) { category in
@@ -148,7 +152,7 @@ private extension PopoverRootView {
         }
     }
 
-    private var effectiveColorScheme: ColorScheme {
+    var effectiveColorScheme: ColorScheme {
         switch storedScheme {
         case "light": return .light
         case "dark": return .dark
@@ -156,7 +160,7 @@ private extension PopoverRootView {
         }
     }
 
-    private var effectiveSwiftUIScheme: ColorScheme? {
+    var effectiveSwiftUIScheme: ColorScheme? {
         switch storedScheme {
         case "light": return .light
         case "dark": return .dark
@@ -164,7 +168,7 @@ private extension PopoverRootView {
         }
     }
 
-    private func cycleTheme() {
+    func cycleTheme() {
         switch storedScheme {
         case "system":
             storedScheme = "light"
@@ -175,17 +179,19 @@ private extension PopoverRootView {
         }
     }
 
-    private func scheduleTerminate() {
+    func scheduleTerminate() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             NSApplication.shared.terminate(nil)
         }
     }
 }
 
+// MARK: – Theme helpers
+
 private enum HushTheme {
-    static let sand = Color(red: 0.784, green: 0.663, blue: 0.494) // #C8A97E
-    static let amberNight = Color(red: 0.910, green: 0.722, blue: 0.427) // #E8B86D
-    static let textLight = Color(red: 0.110, green: 0.110, blue: 0.118) // #1C1C1E adjacent
+    static let sand = Color(red: 0.784, green: 0.663, blue: 0.494)
+    static let amberNight = Color(red: 0.910, green: 0.722, blue: 0.427)
+    static let textLight = Color(red: 0.110, green: 0.110, blue: 0.118)
 }
 
 private func hushChromeAccent(for scheme: ColorScheme) -> Color {
@@ -195,6 +201,8 @@ private func hushChromeAccent(for scheme: ColorScheme) -> Color {
 private func primaryText(for scheme: ColorScheme) -> Color {
     scheme == .dark ? Color.primary : HushTheme.textLight
 }
+
+// MARK: – Environment keys
 
 struct HushAccentKey: EnvironmentKey {
     static let defaultValue: Color = HushTheme.sand

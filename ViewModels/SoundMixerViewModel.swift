@@ -1,6 +1,6 @@
 import Foundation
+import Observation
 import ServiceManagement
-import SwiftUI
 import UserNotifications
 
 extension Notification.Name {
@@ -57,14 +57,19 @@ public struct SoundTrackRuntime: Codable, Hashable, Sendable {
 }
 
 /// Central coordinator for UI state, persistence, audio routing, and timing.
+@Observable
 @MainActor
-public final class SoundMixerViewModel: ObservableObject {
-    private let audio: AudioEngineService
-    private var timerTask: Task<Void, Never>?
-    private var resumeObserver: NSObjectProtocol?
+public final class SoundMixerViewModel {
+    // MARK: – Non-UI state (excluded from observation to avoid spurious view updates)
+
+    @ObservationIgnored private let audio: AudioEngineService
+    @ObservationIgnored private var timerTask: Task<Void, Never>?
+    @ObservationIgnored private var resumeObserver: NSObjectProtocol?
+
+    // MARK: – Observable properties
 
     /// Master gain applied to the ambient bus (`0 ... 1`).
-    @Published public var masterVolume: Double {
+    public var masterVolume: Double {
         didSet {
             DefaultsKeys.storeMaster(masterVolume)
             Task { await audio.setMasterVolume(Float(masterVolume)) }
@@ -72,21 +77,21 @@ public final class SoundMixerViewModel: ObservableObject {
     }
 
     /// Stem states keyed by `Sound.id`.
-    @Published public var tracks: [String: SoundTrackRuntime]
+    public var tracks: [String: SoundTrackRuntime]
 
     /// `true` when any stem is auditioning loops.
-    @Published private(set) public var isGloballyPlaying = false
+    public private(set) var isGloballyPlaying = false
 
     /// Deadline for timer-driven shutdown (`nil` when timers are inactive).
-    @Published public var timerEndsAt: Date?
+    public var timerEndsAt: Date?
 
     /// Describes the UX preset powering the countdown.
-    @Published public var timerPreset: SleepTimerPreset {
+    public var timerPreset: SleepTimerPreset {
         didSet { DefaultsKeys.storeTimerDefault(timerPreset) }
     }
 
     /// Persisted helper hours/minutes backing the `.custom` option (total minutes).
-    @Published public var customTimerMinutesTotal: Int {
+    public var customTimerMinutesTotal: Int {
         didSet { DefaultsKeys.storeCustomMinutes(customTimerMinutesTotal) }
     }
 
@@ -100,38 +105,33 @@ public final class SoundMixerViewModel: ObservableObject {
         customTimerMinutesTotal % 60
     }
 
-    /// Updates spinner selections backing the `.custom` preset (capped to five-hour sessions).
-    public func setCustomTimerComponents(hours: Int, minutes: Int) {
-        let clampedHours = max(0, min(5, hours))
-        let clampedMinutes = max(0, min(59, minutes))
-        customTimerMinutesTotal = clampedHours * 60 + clampedMinutes
-    }
-
     /// Default master amplitude surfaced in onboarding Settings.
-    @Published public var defaultMasterVolumeStored: Double {
+    public var defaultMasterVolumeStored: Double {
         didSet { DefaultsKeys.storeSettingsDefaultMaster(defaultMasterVolumeStored) }
     }
 
     /// Default timer preset surfaced in onboarding Settings.
-    @Published public var defaultTimerStored: SleepTimerPreset {
+    public var defaultTimerStored: SleepTimerPreset {
         didSet { DefaultsKeys.storeSettingsDefaultTimer(defaultTimerStored) }
     }
 
     /// Whether macOS should relaunch Hush after login.
-    @Published public var launchAtLoginEnabled: Bool {
+    public var launchAtLoginEnabled: Bool {
         didSet { Self.applyLaunchAtLogin(launchAtLoginEnabled) }
     }
 
     /// Whether the user wants a macOS notification when timers fire.
-    @Published public var notifyOnTimerEnd: Bool {
+    public var notifyOnTimerEnd: Bool {
         didSet { DefaultsKeys.storeNotifyOnEnd(notifyOnTimerEnd) }
     }
 
     /// Indicates whether decoded buffers finished loading.
-    @Published public private(set) var isAudioReady = false
+    public private(set) var isAudioReady = false
 
     /// Sound IDs with a decoded PCM buffer (mirrored from ``AudioEngineService`` after preload for sync UI lookups).
-    @Published private(set) public var loadedSoundIDs: Set<String> = []
+    public private(set) var loadedSoundIDs: Set<String> = []
+
+    // MARK: – Init
 
     /// Creates a fully wired mixer with bundled sounds and audio services.
     public init(audio: AudioEngineService) {
@@ -139,8 +139,7 @@ public final class SoundMixerViewModel: ObservableObject {
         let loadedTracks = DefaultsKeys.loadTracks()
         var merged: [String: SoundTrackRuntime] = [:]
         for sound in Sound.library {
-            var runtime =
-                loadedTracks[sound.id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
+            var runtime = loadedTracks[sound.id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
             runtime.isEnabled = false
             merged[sound.id] = runtime
         }
@@ -158,15 +157,26 @@ public final class SoundMixerViewModel: ObservableObject {
     }
 
     deinit {
-        if let resumeObserver { NotificationCenter.default.removeObserver(resumeObserver) }
+        if let resumeObserver {
+            NotificationCenter.default.removeObserver(resumeObserver)
+        }
     }
+
+    // MARK: – Public interface
 
     /// Returns whether a buffer exists for the track (UI can dim missing assets).
     public func isBufferAvailable(for id: String) -> Bool {
         loadedSoundIDs.contains(id)
     }
 
-    /// Persists the toggle and applies a 300 ms fade to the corresponding node.
+    /// Updates spinner selections backing the `.custom` preset (capped to five-hour sessions).
+    public func setCustomTimerComponents(hours: Int, minutes: Int) {
+        let clampedHours = max(0, min(5, hours))
+        let clampedMinutes = max(0, min(59, minutes))
+        customTimerMinutesTotal = clampedHours * 60 + clampedMinutes
+    }
+
+    /// Persists the toggle and applies a fade to the corresponding node.
     public func setEnabled(_ enabled: Bool, for id: String) {
         var runtime = tracks[id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
         runtime.isEnabled = enabled
@@ -261,6 +271,8 @@ public final class SoundMixerViewModel: ObservableObject {
     }
 }
 
+// MARK: – Private helpers
+
 private extension SoundMixerViewModel {
     func bootstrapAudio() async {
         await audio.preloadSounds(Sound.library)
@@ -268,13 +280,6 @@ private extension SoundMixerViewModel {
         loadedSoundIDs = ids
         isAudioReady = true
         await audio.setMasterVolume(Float(masterVolume))
-        recomputeGlobalPlayingFlag()
-    }
-
-    func resumeActiveTracksFromDefaults() async {
-        for (id, runtime) in tracks where runtime.isEnabled {
-            await audio.playSound(id: id, targetLinearVolume: Float(runtime.normalizedVolume))
-        }
         recomputeGlobalPlayingFlag()
     }
 
@@ -366,6 +371,8 @@ private extension SoundMixerViewModel {
     }
 }
 
+// MARK: – UserDefaults persistence
+
 private enum DefaultsKeys {
     private static let master = "hush.defaults.masterVolume"
     private static let tracksArchive = "hush.defaults.tracks.json"
@@ -399,8 +406,10 @@ private enum DefaultsKeys {
     }
 
     static func loadTimerDefault() -> SleepTimerPreset {
-        guard let raw = UserDefaults.standard.string(forKey: timer),
-              let preset = SleepTimerPreset(rawValue: raw) else { return .disabled }
+        guard
+            let raw = UserDefaults.standard.string(forKey: timer),
+            let preset = SleepTimerPreset(rawValue: raw)
+        else { return .disabled }
         return preset
     }
 
@@ -427,8 +436,10 @@ private enum DefaultsKeys {
     }
 
     static func loadSettingsDefaultTimer() -> SleepTimerPreset {
-        guard let raw = UserDefaults.standard.string(forKey: defaultsTimer),
-              let preset = SleepTimerPreset(rawValue: raw) else { return .disabled }
+        guard
+            let raw = UserDefaults.standard.string(forKey: defaultsTimer),
+            let preset = SleepTimerPreset(rawValue: raw)
+        else { return .disabled }
         return preset
     }
 
@@ -446,11 +457,8 @@ private enum DefaultsKeys {
     }
 
     static func resetAll() {
-        [
-            master, tracksArchive, timer, custom, defaultsMaster, defaultsTimer, notify,
-            "colorScheme",
-        ]
-        .forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        [master, tracksArchive, timer, custom, defaultsMaster, defaultsTimer, notify, "colorScheme"]
+            .forEach { UserDefaults.standard.removeObject(forKey: $0) }
         UserDefaults.standard.synchronize()
     }
 }

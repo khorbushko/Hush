@@ -3,15 +3,15 @@ import UserNotifications
 
 /// Secondary surface for launch item, defaults, and notifications (embedded popover pane, not heap navigation chrome).
 public struct SettingsView: View {
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    /// `@Bindable` exposes `$viewModel.property` binding syntax for an `@Observable` object.
+    @Bindable private var viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.hushAccent) private var accent
     /// Returns to the mixer surface (``NavigationStack/dismiss()`` is unreliable inside menu-bar panels).
     private let onBack: () -> Void
 
-    /// Presents the settings form with an explicit dismiss action.
     public init(viewModel: SoundMixerViewModel, onBack: @escaping () -> Void) {
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
         self.onBack = onBack
     }
 
@@ -38,6 +38,9 @@ public struct SettingsView: View {
             Divider()
                 .blendMode(.softLight)
 
+            // The `.grouped` form style adds ~20 pt of its own horizontal inset on macOS.
+            // Pulling the Form out by that amount keeps its content aligned with the 16 pt
+            // side padding that PopoverRootView applies to both the mixer and settings panels.
             Form {
                 Section("Session") {
                     Toggle("Launch at login", isOn: $viewModel.launchAtLoginEnabled)
@@ -67,9 +70,7 @@ public struct SettingsView: View {
                             set: { newValue in
                                 viewModel.notifyOnTimerEnd = newValue
                                 if newValue {
-                                    Task {
-                                        await Self.requestNotificationAuthorization()
-                                    }
+                                    Task { await Self.requestNotificationAuthorization() }
                                 }
                             }
                         )
@@ -87,6 +88,7 @@ public struct SettingsView: View {
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
+            .padding(.horizontal, -20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .foregroundStyle(label)

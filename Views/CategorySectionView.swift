@@ -4,7 +4,7 @@ import SwiftUI
 public struct CategorySectionView: View {
     private let category: SoundCategory
     private let sounds: [Sound]
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    private let viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
 
     /// Creates a visually grouped list of ``SoundRowView`` cells.
@@ -15,7 +15,7 @@ public struct CategorySectionView: View {
     ) {
         self.category = category
         self.sounds = sounds
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
     }
 
     public var body: some View {

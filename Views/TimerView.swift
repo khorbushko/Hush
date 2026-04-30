@@ -2,13 +2,13 @@ import SwiftUI
 
 /// Sleep timer controls surfaced under the master fader.
 public struct TimerView: View {
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    /// `@Bindable` exposes `$viewModel.timerPreset` binding syntax for an `@Observable` object.
+    @Bindable private var viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.hushAccent) private var accent
 
-    /// Binds the countdown UI to the owning view model.
     public init(viewModel: SoundMixerViewModel) {
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
     }
 
     public var body: some View {
@@ -28,9 +28,7 @@ public struct TimerView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Picker("Hours", selection: Binding(
                         get: { viewModel.customTimerHourComponent },
-                        set: {
-                            viewModel.setCustomTimerComponents(hours: $0, minutes: viewModel.customTimerMinuteComponent)
-                        }
+                        set: { viewModel.setCustomTimerComponents(hours: $0, minutes: viewModel.customTimerMinuteComponent) }
                     )) {
                         ForEach(0 ... 5, id: \.self) { hour in
                             Text("\(hour) h").tag(hour)
@@ -39,9 +37,7 @@ public struct TimerView: View {
                     .labelsHidden()
                     Picker("Minutes", selection: Binding(
                         get: { viewModel.customTimerMinuteComponent },
-                        set: {
-                            viewModel.setCustomTimerComponents(hours: viewModel.customTimerHourComponent, minutes: $0)
-                        }
+                        set: { viewModel.setCustomTimerComponents(hours: viewModel.customTimerHourComponent, minutes: $0) }
                     )) {
                         ForEach(0 ..< 60, id: \.self) { minute in
                             Text(String(format: "%02d m", minute)).tag(minute)

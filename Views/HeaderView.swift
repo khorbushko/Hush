@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Top chrome with branding, timer readout, and quick actions.
 public struct HeaderView: View {
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    private let viewModel: SoundMixerViewModel
     @Binding private var clock: Date
     @AppStorage("colorScheme") private var storedScheme = "system"
     private let onOpenSettings: () -> Void
@@ -23,7 +23,7 @@ public struct HeaderView: View {
         onOpenAbout: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
         _clock = clock
         self.onOpenSettings = onOpenSettings
         self.onToggleTheme = onToggleTheme
@@ -62,8 +62,7 @@ public struct HeaderView: View {
 private extension HeaderView {
     var versionLine: String {
         let bundle = Bundle.main
-        let version =
-            bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         return "Version \(version)"
     }
 
@@ -97,10 +96,7 @@ private extension HeaderView {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(label.opacity(0.85))
                 .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(.thinMaterial.opacity(0.95))
-                )
+                .background(Circle().fill(.thinMaterial.opacity(0.95)))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(systemName))

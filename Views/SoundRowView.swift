@@ -3,14 +3,13 @@ import SwiftUI
 /// Renders toggles and level controls for a catalogued sound.
 public struct SoundRowView: View {
     private let sound: Sound
-    @ObservedObject private var viewModel: SoundMixerViewModel
+    private let viewModel: SoundMixerViewModel
     @Environment(\.hushAccent) private var accent
     @Environment(\.hushPrimaryLabel) private var label
 
-    /// Binds a mixer row to persisted track state.
     public init(sound: Sound, viewModel: SoundMixerViewModel) {
         self.sound = sound
-        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
     }
 
     private var runtime: SoundTrackRuntime {
