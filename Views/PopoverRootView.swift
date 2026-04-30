@@ -7,7 +7,6 @@ public struct PopoverRootView: View {
     @Bindable private var viewModel: SoundMixerViewModel
     @AppStorage("colorScheme") private var storedScheme = "system"
     @State private var showSettings = false
-    @State private var showAbout = false
     @State private var clock = Date()
     @Environment(\.colorScheme) private var resolvedSystemScheme
 
@@ -45,14 +44,14 @@ public struct PopoverRootView: View {
         .environment(\.hushAccent, hushChromeAccent(for: effectiveColorScheme))
         .environment(\.hushPrimaryLabel, primaryText(for: effectiveColorScheme))
         .tint(hushChromeAccent(for: effectiveColorScheme))
-        .sheet(isPresented: $showAbout) {
-            AboutView(accentColor: hushChromeAccent(for: effectiveColorScheme))
-        }
         .onReceive(Timer.publish(every: 1, tolerance: 0.2, on: .main, in: .common).autoconnect()) {
             clock = $0
         }
         .onReceive(NotificationCenter.default.publisher(for: .hushReloadStoredChrome)) { _ in
             storedScheme = "system"
+        }
+        .onDisappear {
+            showSettings = false
         }
     }
 }
@@ -65,7 +64,9 @@ private extension PopoverRootView {
                 clock: $clock,
                 onOpenSettings: { showSettings = true },
                 onToggleTheme: cycleTheme,
-                onOpenAbout: { showAbout = true },
+                onOpenAbout: {
+                    AboutWindowManager.open(accentColor: hushChromeAccent(for: effectiveColorScheme))
+                },
                 onQuit: scheduleTerminate
             )
             if viewModel.isAudioReady, missingBundledSoundTitles.isEmpty == false {

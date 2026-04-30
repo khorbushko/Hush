@@ -1,63 +1,68 @@
 import AppKit
+import MarkdownView
 import SwiftUI
 
-/// Lightweight credits sheet surfaced from the popover toolbar.
+/// Credits panel styled to match the app's popover chrome.
 public struct AboutView: View {
-    @Environment(\.dismiss) private var dismiss
-
     private let accentColor: Color
 
-    /// Presents attribution text and outbound marketing link.
     public init(accentColor: Color) {
         self.accentColor = accentColor
     }
 
     public var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
+        VStack(alignment: .center, spacing: 0) {
+            // Top metadata section — sits below the transparent title-bar traffic lights.
+            VStack(spacing: 12) {
                 appIcon
-                    .padding(.top, 4)
                 Text("Hush")
                     .font(.title2.weight(.semibold))
                 Text(bundleVersion)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text("Crafted as a Sonoma-native ambient mixer that keeps focus soft and steady.")
+                Text("Ambient mixer that keeps focus soft and steady.")
                     .multilineTextAlignment(.center)
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal)
-                if let destination = URL(string: "https://example.com/hush") {
-                    Link("Visit hushaudio.example.com", destination: destination)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let destination = URL(string: "https://khorbushko.github.io") {
+                    Link("Visit developer blog", destination: destination)
+                        .font(.footnote)
                         .tint(accentColor)
                 }
-                Spacer()
             }
-            .padding(24)
-            .frame(minWidth: 320, minHeight: 260)
-            .navigationTitle("About")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.secondary, .quaternary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Close")
-                    .keyboardShortcut(.cancelAction)
+            .padding(.horizontal, 24)
+            .padding(.top, 36)   // clears the transparent title-bar / traffic lights
+            .padding(.bottom, 16)
+
+            Divider()
+
+            // Changelog — fills all remaining height with full Markdown rendering.
+            if let markdown = changelogMarkdown {
+                ScrollView {
+                    MarkdownView(markdown)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
+            } else {
+                Text("No changelog available.")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: 500)
+        .frame(minWidth: 350, minHeight: 400)
+        .background(.regularMaterial)
+        .ignoresSafeArea()
     }
 }
 
 private extension AboutView {
     var appIcon: some View {
         Group {
-            if let image =
-                NSImage(named: NSImage.applicationIconName) ?? NSImage(named: "AppIcon") {
+            if let image = NSImage(named: NSImage.applicationIconName) ?? NSImage(named: "AppIcon") {
                 Image(nsImage: image)
                     .resizable()
                     .frame(width: 64, height: 64)
@@ -73,9 +78,19 @@ private extension AboutView {
 
     var bundleVersion: String {
         let bundle = Bundle.main
-        let marketing =
-            bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let marketing = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
         return "Version \(marketing) (\(build))"
+    }
+
+    var changelogMarkdown: String? {
+        let url = Bundle.main.url(forResource: "CHANGELOG", withExtension: "md")
+            ?? Bundle.main.url(forResource: "CHANGELOG.md", withExtension: nil)
+        guard let url,
+              let raw = try? String(contentsOf: url, encoding: .utf8),
+              !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return raw
     }
 }
