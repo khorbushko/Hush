@@ -41,7 +41,7 @@ public actor AudioEngineService {
     private var notificationTokens: [NSObjectProtocol] = []
     private var deferredStartAttempts = 0
     private var configurationObserverInstalled = false
-    /// Looping pads are scheduled once per graph; ``AVAudioPlayerNode/isPlaying`` can stay false briefly so we never use it alone for this.
+    /// IDs whose looping buffer has been scheduled in the current engine session.
     private var stemLoopsScheduled = Set<String>()
 
     /// Whether rendering I/O has started successfully.
@@ -162,18 +162,17 @@ public actor AudioEngineService {
         var mixerInputBus: AVAudioNodeBus = 0
 
         for sound in sounds {
-            guard buffers[sound.id] != nil else {
+            guard let buffer = buffers[sound.id] else {
                 diag("rebuildGraph skip id=\(sound.id) (no buffer)")
                 continue
             }
             let player = AVAudioPlayerNode()
             engine.attach(player)
-            // FIX 1: Pass `format: nil` so AVAudioEngine inserts a format converter node
-            // automatically. Without this, any node whose buffer sample rate or channel count
-            // differs from the hardware output (48 kHz stereo on macOS) renders silence —
-            // there is no automatic resampling when an explicit non-matching format is given.
-            engine.connect(player, to: mixer, fromBus: 0, toBus: mixerInputBus, format: nil)
-            diag("rebuildGraph connect id=\(sound.id) → mainMixer inputBus=\(mixerInputBus) (format: nil → auto-convert)")
+            // Connect with the buffer's own format so the player node's output channel count
+            // matches what scheduleBuffer will deliver. AVAudioMixerNode up/down-mixes
+            // automatically (e.g. mono→stereo), so different formats across stems are fine.
+            engine.connect(player, to: mixer, fromBus: 0, toBus: mixerInputBus, format: buffer.format)
+            diag("rebuildGraph connect id=\(sound.id) → mainMixer bus=\(mixerInputBus) \(HushAudioLog.formatSummary(buffer.format))")
             mixerInputBus += 1
             player.volume = 0
             playerNodes[sound.id] = player
@@ -199,76 +198,42 @@ public actor AudioEngineService {
         buffers[id] != nil
     }
 
-    /// Schedules a looping buffer and ramps to the target volume.
+    /// Starts (or adjusts the volume of) a looping ambient stem.
     ///
-    /// Key behavioural changes vs the original:
-    /// - **`scheduleBuffer` is synchronous** (no `await`). The async overload suspends between
-    ///   schedule and play, creating a race with concurrent `stopSound` calls that reset the node
-    ///   before `player.play()` fires — leaving the node in a permanently broken state.
-    /// - The reuse path **checks `player.isPlaying`** and re-schedules if the node has died, so a
-    ///   brief interruption or engine restart never leaves a sound silently stalled.
+    /// First call per session: schedules the buffer synchronously (non-async overload), sets the
+    /// target volume, then calls `play()` — audio is audible immediately.
+    ///
+    /// Subsequent calls while the loop is already running: directly sets `player.volume` to the
+    /// new target so the slider change is reflected at once without any scheduling overhead.
     public func playSound(id: String, targetLinearVolume: Float) async {
         diag("playSound begin id=\(id) targetLinear=\(targetLinearVolume)")
         guard let player = playerNodes[id], let buffer = buffers[id] else {
-            let ids = playerNodes.keys.sorted().joined(separator: ",")
-            diag("playSound abort id=\(id) missing player or buffer (players=[\(ids)])")
+            let keys = playerNodes.keys.sorted().joined(separator: ",")
+            diag("playSound abort id=\(id) no player/buffer (players=[\(keys)])")
             return
         }
-        engine.prepare()
         await awaitEngineRunningForPlayback()
         guard engine.isRunning else {
-            diag("playSound abort id=\(id) engine not running after await")
+            diag("playSound abort id=\(id) engine not running")
             return
         }
 
-        let alreadyScheduled = stemLoopsScheduled.contains(id)
+        let target = amplitude(fromNormalized: targetLinearVolume)
 
-        // FIX 3 (reuse path): if the node was scheduled before but is no longer playing
-        // (e.g. after an engine restart or interruption), drop it from the scheduled set so
-        // we fall through and re-schedule it below rather than silently ramping a dead node.
-        if alreadyScheduled && !player.isPlaying {
-            diag("playSound reuse id=\(id) but node is not playing — forcing reschedule")
-            stemLoopsScheduled.remove(id)
-            player.stop()
-            player.reset()
+        if stemLoopsScheduled.contains(id) {
+            // Already looping — just update gain directly; no scheduling needed.
+            player.volume = target
+            diag("playSound gain-only id=\(id) vol=\(target)")
+            return
         }
 
-        let reuseOnly = stemLoopsScheduled.contains(id)
-        let rampSeconds: TimeInterval = reuseOnly ? 0.05 : 0.3
-
-        if !reuseOnly {
-            // Claim the stem *before* any suspension point so that concurrent `playSound` calls
-            // on the same id that also reach this branch see the set populated and take the
-            // ramp-only path instead of double-scheduling.
-            stemLoopsScheduled.insert(id)
-            diag("playSound scheduleBuffer+play id=\(id) loops bufferFrames=\(buffer.frameLength)")
-
-            // FIX 2: Call scheduleBuffer synchronously — no `await`.
-            // The async overload suspends here, creating a window during which a concurrent
-            // stopSound can call player.stop()/player.reset(), so player.play() fires on a
-            // reset node and the loop never actually starts.
-            await player.scheduleBuffer(buffer, at: nil, options: [.loops, .interruptsAtLoop])
-            player.play()
-
-            guard engine.isRunning else {
-                stemLoopsScheduled.remove(id)
-                diag("playSound abort id=\(id) engine stopped after schedule")
-                return
-            }
-            guard player.isPlaying else {
-                stemLoopsScheduled.remove(id)
-                diag("playSound abort id=\(id) player.play() did not start — node may be in bad state")
-                return
-            }
-            diag("playSound player.play() issued id=\(id) isPlaying=\(player.isPlaying)")
-        } else {
-            diag("playSound id=\(id) loop already scheduled and playing — gain ramp only")
-        }
-
-        await rampVolume(player: player, to: amplitude(fromNormalized: targetLinearVolume), duration: rampSeconds)
-        diag(
-            "playSound end id=\(id) playerVol=\(player.volume) engineRunning=\(engine.isRunning) nodePlaying=\(player.isPlaying) reuse=\(reuseOnly)"
-        )
+        // Fresh start: schedule synchronously, set volume, play.
+        diag("playSound schedule+play id=\(id) bufferFrames=\(buffer.frameLength) vol=\(target)")
+        stemLoopsScheduled.insert(id)
+        player.volume = target
+        player.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil) // async not works
+        player.play()
+        diag("playSound play() issued id=\(id) isPlaying=\(player.isPlaying) vol=\(player.volume) engineRunning=\(engine.isRunning)")
     }
 
     public func stopSound(id: String, fadeDuration: TimeInterval) async {
