@@ -7,6 +7,7 @@ public struct TimerView: View {
     @Bindable private var viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.hushAccent) private var accent
+    @Environment(\.locale) private var locale
 
     @State private var isExpanded = false
 
@@ -16,7 +17,7 @@ public struct TimerView: View {
 
     public var body: some View {
         ExpandableView(
-            "Sleep timer",
+            "timer.title",
             isExpanded: $isExpanded,
             style: ExpandableStyle(
                 titleColor: label.opacity(0.75),
@@ -25,8 +26,6 @@ public struct TimerView: View {
         ) {
             controls
         }
-        // No `withAnimation` needed — ExpandableView's implicit animation on `isExpanded`
-        // handles the collapse transition uniformly whether triggered by tap or timer end.
         .onChange(of: viewModel.timerEndsAt) { _, newValue in
             if newValue == nil {
                 isExpanded = false
@@ -38,7 +37,7 @@ public struct TimerView: View {
 private extension TimerView {
     var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Preset", selection: $viewModel.timerPreset) {
+            Picker("timer.preset", selection: $viewModel.timerPreset) {
                 ForEach(SleepTimerPreset.allCases) { preset in
                     Text(preset.menuTitle).tag(preset)
                 }
@@ -48,21 +47,33 @@ private extension TimerView {
 
             if viewModel.timerPreset == .custom {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Picker("Hours", selection: Binding(
+                    Picker("timer.hours", selection: Binding(
                         get: { viewModel.customTimerHourComponent },
                         set: { viewModel.setCustomTimerComponents(hours: $0, minutes: viewModel.customTimerMinuteComponent) }
                     )) {
                         ForEach(0 ... 5, id: \.self) { hour in
-                            Text("\(hour) h").tag(hour)
+                            Text(
+                                String.localizedStringWithFormat(
+                                    String(localized: "timer.hours_short_format", locale: locale),
+                                    hour
+                                )
+                            )
+                            .tag(hour)
                         }
                     }
                     .labelsHidden()
-                    Picker("Minutes", selection: Binding(
+                    Picker("timer.minutes", selection: Binding(
                         get: { viewModel.customTimerMinuteComponent },
                         set: { viewModel.setCustomTimerComponents(hours: viewModel.customTimerHourComponent, minutes: $0) }
                     )) {
                         ForEach(0 ..< 60, id: \.self) { minute in
-                            Text(String(format: "%02d m", minute)).tag(minute)
+                            Text(
+                                String.localizedStringWithFormat(
+                                    String(localized: "timer.minutes_short_format", locale: locale),
+                                    minute
+                                )
+                            )
+                            .tag(minute)
                         }
                     }
                     .labelsHidden()
@@ -72,7 +83,7 @@ private extension TimerView {
             }
 
             HStack {
-                Button("Stop countdown") {
+                Button("timer.stop_countdown") {
                     viewModel.cancelTimer()
                 }
                 .buttonStyle(.bordered)
@@ -83,7 +94,7 @@ private extension TimerView {
                 Button {
                     viewModel.startTimer()
                 } label: {
-                    Label("Start timer", systemImage: "timer")
+                    Label("timer.start_timer", systemImage: "timer")
                         .font(.footnote.weight(.semibold))
                 }
                 .buttonStyle(.borderedProminent)

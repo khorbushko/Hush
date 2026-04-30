@@ -39,22 +39,16 @@ public struct ExpandableStyle {
 /// ```
 public struct ExpandableView<Content: View>: View {
 
-    // MARK: – Style
     public typealias Style = ExpandableStyle
 
-    // MARK: – Properties
-
-    private let title: String
+    private let title: LocalizedStringResource
     private let style: Style
     @Binding private var isExpanded: Bool
 
-    /// Stored as `Content` (not a closure) so SwiftUI can diff and skip unchanged subtrees.
     @ViewBuilder private let content: Content
 
-    // MARK: – Init
-
     public init(
-        _ title: String,
+        _ title: LocalizedStringResource,
         isExpanded: Binding<Bool>,
         style: Style = Style(),
         @ViewBuilder content: () -> Content
@@ -65,7 +59,19 @@ public struct ExpandableView<Content: View>: View {
         self.content = content()
     }
 
-    // MARK: – Body
+    public init(
+        _ title: String,
+        isExpanded: Binding<Bool>,
+        style: Style = Style(),
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            LocalizedStringResource(stringLiteral: title),
+            isExpanded: isExpanded,
+            style: style,
+            content: content
+        )
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -104,7 +110,7 @@ private extension ExpandableView {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))
-        .accessibilityHint(Text(isExpanded ? "Collapse" : "Expand"))
+        .accessibilityHint(Text(isExpanded ? "expandable.collapse" : "expandable.expand"))
         .accessibilityAddTraits(.isButton)
     }
 }

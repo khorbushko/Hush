@@ -5,6 +5,7 @@ import SwiftUI
 /// Credits panel styled to match the app's popover chrome.
 public struct AboutView: View {
     private let accentColor: Color
+    @Environment(\.locale) private var locale
 
     public init(accentColor: Color) {
         self.accentColor = accentColor
@@ -12,32 +13,35 @@ public struct AboutView: View {
 
     public var body: some View {
         VStack(alignment: .center, spacing: 0) {
-            // Top metadata section — sits below the transparent title-bar traffic lights.
             VStack(spacing: 12) {
                 appIcon
-                Text("Hush")
+                Text("app.name")
                     .font(.title2.weight(.semibold))
                 Text(bundleVersion)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text("Ambient mixer that keeps focus soft and steady.")
+                Text("about.tagline")
                     .multilineTextAlignment(.center)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if let destination = URL(string: "https://khorbushko.github.io") {
-                    Link("Visit developer blog", destination: destination)
-                        .font(.footnote)
-                        .tint(accentColor)
+                HStack(spacing: 12) {
+                    if let destination = URL(string: "https://khorbushko.github.io") {
+                        Link("about.visit_blog", destination: destination)
+                    }
+                    if let destination = URL(string: "https://github.com/khorbushko/Hush/issues/new") {
+                        Link("about.submit_bug", destination: destination)
+                    }
                 }
+                .font(.footnote)
+                .tint(accentColor)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 36)   // clears the transparent title-bar / traffic lights
+            .padding(.top, 36)
             .padding(.bottom, 16)
 
             Divider()
 
-            // Changelog — fills all remaining height with full Markdown rendering.
             if let markdown = changelogMarkdown {
                 ScrollView {
                     MarkdownView(markdown)
@@ -46,7 +50,7 @@ public struct AboutView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             } else {
-                Text("No changelog available.")
+                Text("about.no_changelog")
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,7 +84,11 @@ private extension AboutView {
         let bundle = Bundle.main
         let marketing = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-        return "Version \(marketing) (\(build))"
+        return String.localizedStringWithFormat(
+            String(localized: "common.version_build_format", locale: locale),
+            marketing,
+            build
+        )
     }
 
     var changelogMarkdown: String? {

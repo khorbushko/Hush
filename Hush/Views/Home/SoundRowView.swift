@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Renders toggles and level controls for a catalogued sound.
 public struct SoundRowView: View {
     private let sound: Sound
     private let viewModel: SoundMixerViewModel
@@ -33,7 +32,7 @@ public struct SoundRowView: View {
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(label)
                     if hasBuffer == false {
-                        Text("Asset missing")
+                        Text("sound.asset_missing")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                     }
@@ -47,7 +46,7 @@ public struct SoundRowView: View {
                 .disabled(!viewModel.isAudioReady || !hasBuffer)
             }
             HStack(spacing: 8) {
-                Text("0%")
+                Text("sound.volume.min")
                     .font(.caption2)
                     .foregroundStyle(label.opacity(0.45))
                 Slider(
@@ -57,7 +56,7 @@ public struct SoundRowView: View {
                     ),
                     in: 0 ... 1
                 )
-                Text("100%")
+                Text("sound.volume.max")
                     .font(.caption2)
                     .foregroundStyle(label.opacity(0.45))
             }

@@ -10,8 +10,8 @@ public struct PresetsView: View {
     @Environment(\.hushAccent) private var accent
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
 
-    // Expanded by default so presets are immediately visible on launch.
     @State private var isExpanded = true
 
     public init(viewModel: SoundMixerViewModel) {
@@ -20,7 +20,7 @@ public struct PresetsView: View {
 
     public var body: some View {
         ExpandableView(
-            "Presets",
+            "presets.title",
             isExpanded: $isExpanded,
             style: ExpandableStyle(
                 titleColor: label.opacity(0.75),
@@ -89,7 +89,7 @@ private extension PresetsView {
         .buttonStyle(.plain)
         .disabled(!viewModel.isGloballyPlaying)
         .opacity(viewModel.isGloballyPlaying ? 1 : 0.35)
-        .accessibilityLabel("Save current mix as preset")
+        .accessibilityLabel(Text("presets.save_accessibility"))
     }
 
     var randomButton: some View {
@@ -109,7 +109,7 @@ private extension PresetsView {
         .buttonStyle(.plain)
         .disabled(!viewModel.isAudioReady)
         .opacity(viewModel.isAudioReady ? 1 : 0.35)
-        .accessibilityLabel("Randomise current mix")
+        .accessibilityLabel(Text("presets.random_accessibility"))
     }
 
     var stopAllButton: some View {
@@ -130,7 +130,7 @@ private extension PresetsView {
         .buttonStyle(.plain)
         .disabled(!viewModel.isGloballyPlaying)
         .opacity(viewModel.isGloballyPlaying ? 1 : 0.35)
-        .accessibilityLabel("Stop all sounds")
+        .accessibilityLabel(Text("presets.stop_all_accessibility"))
     }
 }
 
@@ -141,11 +141,16 @@ private struct PresetCard: View {
     let preset: SoundPreset
     let colorScheme: ColorScheme
     let isLoading: Bool
+    @Environment(\.locale) private var locale
 
     private static let size: CGFloat = 32
     private static let cornerRadius: CGFloat = 8
 
     var body: some View {
+        let presetCountLabel = String.localizedStringWithFormat(
+            String(localized: "preset.accessibility.count", locale: locale),
+            preset.symbolNames.count
+        )
         ZStack {
             symbolGrid
                 .opacity(isLoading ? 0.25 : 1)
@@ -171,8 +176,8 @@ private struct PresetCard: View {
                     )
                 }
         }
-        .accessibilityLabel("Preset with \(preset.symbolNames.count) sound\(preset.symbolNames.count == 1 ? "" : "s")")
-        .accessibilityHint("Tap to load, hold to delete")
+        .accessibilityLabel(Text(presetCountLabel))
+        .accessibilityHint(Text("presets.card.hint"))
     }
 
     private var tintColor: Color {

@@ -9,8 +9,7 @@ import SwiftUI
 enum AboutWindowManager {
     private static weak var panel: NSPanel?
 
-    /// Opens the About panel, or brings the existing one to front if already visible.
-    static func open(accentColor: Color) {
+    static func open(accentColor: Color, locale: Locale) {
         if let existing = panel, existing.isVisible {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -18,6 +17,7 @@ enum AboutWindowManager {
         }
 
         let content = AboutView(accentColor: accentColor)
+            .environment(\.locale, locale)
         let hosting = NSHostingController(rootView: content)
 
         let newPanel = NSPanel(

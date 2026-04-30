@@ -1,13 +1,10 @@
 import SwiftUI
 import UserNotifications
 
-/// Secondary surface for launch item, defaults, and notifications (embedded popover pane, not heap navigation chrome).
 public struct SettingsView: View {
-    /// `@Bindable` exposes `$viewModel.property` binding syntax for an `@Observable` object.
     @Bindable private var viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.hushAccent) private var accent
-    /// Returns to the mixer surface (``NavigationStack/dismiss()`` is unreliable inside menu-bar panels).
     private let onBack: () -> Void
 
     public init(viewModel: SoundMixerViewModel, onBack: @escaping () -> Void) {
@@ -26,9 +23,9 @@ public struct SettingsView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Back")
+                .accessibilityLabel(Text("settings.back"))
                 .keyboardShortcut(.escape, modifiers: [])
-                Text("Settings")
+                Text("settings.title")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(label)
                 Spacer(minLength: 0)
@@ -38,19 +35,34 @@ public struct SettingsView: View {
             Divider()
                 .blendMode(.softLight)
 
-            // The `.grouped` form style adds ~20 pt of its own horizontal inset on macOS.
-            // Pulling the Form out by that amount keeps its content aligned with the 16 pt
-            // side padding that PopoverRootView applies to both the mixer and settings panels.
             Form {
-                Section("Session") {
-                    Toggle("Launch at login", isOn: $viewModel.launchAtLoginEnabled)
+                Section("settings.section.session") {
+                    Toggle("settings.launch_at_login", isOn: $viewModel.launchAtLoginEnabled)
+                    VStack {
+                        Picker("settings.language", selection: $viewModel.appLanguage) {
+                            ForEach(AppLanguage.allCases) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .padding(.bottom, 8)
+
+                        HStack {
+                            Spacer()
+                            Text("settings.language_restart_note")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Default master volume")
+                        Text("settings.default_master_volume")
                             .font(.subheadline.weight(.medium))
                         Slider(value: $viewModel.defaultMasterVolumeStored, in: 0 ... 1)
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Default timer")
+                        Text("settings.default_timer")
                             .font(.subheadline.weight(.medium))
                         Picker("", selection: $viewModel.defaultTimerStored) {
                             ForEach(SleepTimerPreset.allCases) { preset in
@@ -62,9 +74,9 @@ public struct SettingsView: View {
                     }
                 }
 
-                Section("Notifications") {
+                Section("settings.section.notifications") {
                     Toggle(
-                        "Alert when timer completes",
+                        "settings.alert_when_timer_completes",
                         isOn: Binding(
                             get: { viewModel.notifyOnTimerEnd },
                             set: { newValue in
@@ -82,7 +94,7 @@ public struct SettingsView: View {
                         viewModel.resetToFactoryDefaults()
                         onBack()
                     } label: {
-                        Label("Reset to defaults", systemImage: "arrow.counterclockwise.circle")
+                        Label("settings.reset_defaults", systemImage: "arrow.counterclockwise.circle")
                     }
                 }
             }

@@ -24,16 +24,6 @@ private enum HushAudioLog {
 /// Graph control runs on this **actor**, not ``MainActor``. Multiple ``AVAudioPlayerNode`` instances attach to
 /// ``mainMixerNode`` on **distinct mixer input buses** (see
 /// [Stack Overflow: multiple buffers + mixer](https://stackoverflow.com/questions/57343150/how-to-play-multiple-sounds-from-buffer-simultaneously-using-nodes-connected-to)).
-///
-/// ## Fix notes (vs original)
-/// 1. **`engine.connect` uses `format: nil`** so AVAudioEngine inserts a sample-rate / channel-count
-///    converter automatically. Without this, nodes whose buffers have a different format than the
-///    hardware output (e.g. 24 kHz or 44.1 kHz mono into a 48 kHz stereo graph) render silence on macOS.
-/// 2. **`scheduleBuffer` is called synchronously** (no `await`). The async overload introduces a
-///    suspension point between `scheduleBuffer` and `player.play()`, creating a window where a
-///    concurrent `stopSound` can reset the node, leaving it broken for all future reuse calls.
-/// 3. **Reuse path checks `player.isPlaying`** and re-schedules if the node has silently died,
-///    preventing permanent silence after any interruption.
 public actor AudioEngineService {
     private let engine = AVAudioEngine()
     private var playerNodes: [String: AVAudioPlayerNode] = [:]
@@ -221,13 +211,11 @@ public actor AudioEngineService {
         let target = amplitude(fromNormalized: targetLinearVolume)
 
         if stemLoopsScheduled.contains(id) {
-            // Already looping — just update gain directly; no scheduling needed.
             player.volume = target
             diag("playSound gain-only id=\(id) vol=\(target)")
             return
         }
 
-        // Fresh start: schedule synchronously, set volume, play.
         diag("playSound schedule+play id=\(id) bufferFrames=\(buffer.frameLength) vol=\(target)")
         stemLoopsScheduled.insert(id)
         player.volume = target
@@ -280,7 +268,6 @@ public actor AudioEngineService {
 }
 
 private extension AudioEngineService {
-    /// Builds the message on the actor so `Logger` does not infer autoclosure captures over isolated state.
     func diag(_ message: String) {
         HushAudioLog.logger.notice("\(message, privacy: .public)")
     }

@@ -10,14 +10,16 @@ struct HushApp: App {
 
     var body: some Scene {
         FluidMenuBarExtra(
-            "Hush",
+            String(localized: "app.name"),
             systemImage: viewModel.isGloballyPlaying ? "waveform" : "waveform.slash",
             isInserted: $menuBarExtraInserted,
             animation: .none,
             alignment: .left,
             screenClippingBehaviour: .reverseAlignment
         ) {
+            let locale = viewModel.appLanguage.localeOverride ?? Locale.current
             PopoverRootView(viewModel: viewModel)
+                .environment(\.locale, locale)
         }
     }
 }

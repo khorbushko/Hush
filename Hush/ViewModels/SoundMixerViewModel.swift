@@ -20,14 +20,14 @@ public enum SleepTimerPreset: String, Codable, CaseIterable, Identifiable, Senda
     public var id: String { rawValue }
 
     /// Human-readable label for segmented controls or menus.
-    public var menuTitle: String {
+    public var menuTitle: LocalizedStringResource {
         switch self {
-        case .disabled: return "Off"
-        case .minutes15: return "15 min"
-        case .minutes30: return "30 min"
-        case .minutes45: return "45 min"
-        case .minutes60: return "60 min"
-        case .custom: return "Custom"
+        case .disabled: "timer.preset.off"
+        case .minutes15: "timer.preset.minutes15"
+        case .minutes30: "timer.preset.minutes30"
+        case .minutes45: "timer.preset.minutes45"
+        case .minutes60: "timer.preset.minutes60"
+        case .custom: "timer.preset.custom"
         }
     }
 
@@ -39,6 +39,30 @@ public enum SleepTimerPreset: String, Codable, CaseIterable, Identifiable, Senda
         case .minutes45: return 2_700
         case .minutes60: return 3_600
         case .custom: return nil
+        }
+    }
+}
+
+public enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
+    case system
+    case en
+    case uk
+
+    public var id: String { rawValue }
+
+    public var displayName: LocalizedStringResource {
+        switch self {
+        case .system: "language.system"
+        case .en: "language.en"
+        case .uk: "language.uk"
+        }
+    }
+
+    public var localeOverride: Locale? {
+        switch self {
+        case .system: nil
+        case .en: Locale(identifier: "en")
+        case .uk: Locale(identifier: "uk")
         }
     }
 }
@@ -125,6 +149,11 @@ public final class SoundMixerViewModel {
         didSet { DefaultsKeys.storeNotifyOnEnd(notifyOnTimerEnd) }
     }
 
+    /// Per-app language override (system / English / Ukrainian).
+    public var appLanguage: AppLanguage {
+        didSet { DefaultsKeys.storeLanguage(appLanguage) }
+    }
+
     /// Indicates whether decoded buffers finished loading.
     public private(set) var isAudioReady = false
 
@@ -160,6 +189,7 @@ public final class SoundMixerViewModel {
         defaultTimerStored = DefaultsKeys.loadSettingsDefaultTimer()
         launchAtLoginEnabled = Self.readLaunchAtLoginState()
         notifyOnTimerEnd = DefaultsKeys.loadNotifyOnEnd()
+        appLanguage = DefaultsKeys.loadLanguage()
         presets = DefaultsKeys.loadPresets()
         loadingPresetID = nil
         bindResumeObserver()
@@ -358,7 +388,10 @@ public final class SoundMixerViewModel {
     public func formattedCountdown(referenceDate: Date = Date()) -> String? {
         guard let end = timerEndsAt else { return nil }
         let interval = max(0, end.timeIntervalSince(referenceDate))
-        guard interval > 1 else { return "Ending…" }
+        if interval <= 1 {
+            let locale = appLanguage.localeOverride ?? Locale.current
+            return String(localized: "timer.ending", locale: locale)
+        }
         let totalSeconds = Int(interval.rounded(.up))
         let hours = totalSeconds / 3_600
         let minutes = (totalSeconds % 3_600) / 60
@@ -462,8 +495,9 @@ private extension SoundMixerViewModel {
         let granted = try? await center.requestAuthorization(options: [.alert, .sound])
         guard granted == true else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Hush"
-        content.body = "Your sleep timer ended and playback faded out."
+        let locale = DefaultsKeys.loadLanguage().localeOverride ?? Locale.current
+        content.title = String(localized: "notification.timer.title", locale: locale)
+        content.body = String(localized: "notification.timer.body", locale: locale)
         content.sound = .default
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         try? await center.add(request)
@@ -497,6 +531,7 @@ private enum DefaultsKeys {
     private static let defaultsTimer = "hush.defaults.settings.timer"
     private static let notify = "hush.defaults.notify.timer"
     private static let presetsArchive = "hush.defaults.presets.json"
+    private static let language = "hush.defaults.language"
 
     static func loadTracks() -> [String: SoundTrackRuntime] {
         guard
@@ -572,6 +607,17 @@ private enum DefaultsKeys {
         UserDefaults.standard.set(value, forKey: notify)
     }
 
+    static func loadLanguage() -> AppLanguage {
+        guard let raw = UserDefaults.standard.string(forKey: language),
+              let value = AppLanguage(rawValue: raw)
+        else { return .system }
+        return value
+    }
+
+    static func storeLanguage(_ value: AppLanguage) {
+        UserDefaults.standard.set(value.rawValue, forKey: language)
+    }
+
     static func loadPresets() -> [SoundPreset] {
         guard
             let data = UserDefaults.standard.data(forKey: presetsArchive),
@@ -588,7 +634,7 @@ private enum DefaultsKeys {
 
     static func resetAll() {
         [master, tracksArchive, timer, custom, defaultsMaster, defaultsTimer, notify,
-         presetsArchive, "colorScheme"]
+         presetsArchive, language, "colorScheme"]
             .forEach { UserDefaults.standard.removeObject(forKey: $0) }
         UserDefaults.standard.synchronize()
     }

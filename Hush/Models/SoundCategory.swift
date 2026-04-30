@@ -13,11 +13,11 @@ public enum SoundCategory: String, CaseIterable, Codable, Sendable, Identifiable
     public var id: String { rawValue }
 
     /// User-facing section title for the category.
-    public var displayName: String {
+    public var displayName: LocalizedStringResource {
         switch self {
-        case .nature: "Nature"
-        case .cafeUrban: "Café & Urban"
-        case .focusAbstract: "Focus & Abstract"
+        case .nature: "category.nature"
+        case .cafeUrban: "category.cafe_urban"
+        case .focusAbstract: "category.focus_abstract"
         }
     }
 }

@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// Stacks a rounded section title with the sounds that belong to ``category``.
 public struct CategorySectionView: View {
     private let category: SoundCategory
     private let sounds: [Sound]
     private let viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
 
-    /// Creates a visually grouped list of ``SoundRowView`` cells.
     public init(
         category: SoundCategory,
         sounds: [Sound],

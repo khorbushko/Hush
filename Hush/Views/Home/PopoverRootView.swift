@@ -3,12 +3,12 @@ import SwiftUI
 
 /// Hosts the entire SwiftUI hierarchy shown inside the status-item popover.
 public struct PopoverRootView: View {
-    /// `@Bindable` exposes `$viewModel.property` binding syntax for an `@Observable` object.
     @Bindable private var viewModel: SoundMixerViewModel
     @AppStorage("colorScheme") private var storedScheme = "system"
     @State private var showSettings = false
     @State private var clock = Date()
     @Environment(\.colorScheme) private var resolvedSystemScheme
+    @Environment(\.locale) private var locale
 
     public init(viewModel: SoundMixerViewModel) {
         self.viewModel = viewModel
@@ -63,13 +63,13 @@ private extension PopoverRootView {
                 viewModel: viewModel,
                 clock: $clock,
                 onOpenSettings: { showSettings = true },
-                onToggleTheme: cycleTheme,
-                onOpenAbout: {
-                    AboutWindowManager.open(accentColor: hushChromeAccent(for: effectiveColorScheme))
-                },
+                onOpenCoffee: openCoffeeJar,
+                onToggleTheme: onToogleTheme,
+                onOpenAbout: cycleTheme,
+                onBugReport: openBugReport,
                 onQuit: scheduleTerminate
             )
-            if viewModel.isAudioReady, missingBundledSoundTitles.isEmpty == false {
+            if viewModel.isAudioReady, missingBundledSounds.isEmpty == false {
                 missingAssetsBanner
             }
             masterVolumeRow
@@ -88,24 +88,29 @@ private extension PopoverRootView {
         effectiveColorScheme == .dark ? .ultraThinMaterial : .regularMaterial
     }
 
-    var missingBundledSoundTitles: [String] {
-        Sound.library.filter { !viewModel.isBufferAvailable(for: $0.id) }.map(\.name)
+    var missingBundledSounds: [Sound] {
+        Sound.library.filter { !viewModel.isBufferAvailable(for: $0.id) }
     }
 
     var missingAssetsBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label {
-                Text(
-                    "Some audio files were not found or could not be decoded. Rebuild after adding matching `.m4a` files to the target (see `Sound.resourceName`)."
-                )
+                Text("mixer.missing_assets.message")
                 .font(.caption)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
-            Text("Missing: \(missingBundledSoundTitles.sorted().joined(separator: ", "))")
-                .font(.caption2)
-                .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.7))
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("mixer.missing_assets.missing_header")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.8))
+                ForEach(missingBundledSounds, id: \.id) { sound in
+                    Text(sound.name)
+                        .font(.caption2)
+                        .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -121,7 +126,7 @@ private extension PopoverRootView {
 
     var masterVolumeRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Master volume")
+            Text("mixer.master_volume")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(primaryText(for: effectiveColorScheme).opacity(0.75))
             HStack(spacing: 10) {
@@ -135,6 +140,25 @@ private extension PopoverRootView {
             }
         }
         .foregroundStyle(primaryText(for: effectiveColorScheme))
+    }
+
+    func openCoffeeJar() {
+        guard let url = URL(string: "https://send.monobank.ua/jar/6k1uKWjVre?") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func openBugReport() {
+        guard let url = URL(string: "https://github.com/khorbushko/Hush/issues/new") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func onToogleTheme() {
+
+        let locale = viewModel.appLanguage.localeOverride ?? Locale.current
+        AboutWindowManager.open(
+            accentColor: hushChromeAccent(for: effectiveColorScheme),
+            locale: locale
+        )
     }
 
     var scrollContent: some View {

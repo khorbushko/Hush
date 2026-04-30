@@ -3,9 +3,7 @@ import AppKit
 /// FluidMenuBarExtra applies the toolbar symbol once when ``NSStatusItem`` is constructed; SwiftUI `@StateObject` preserves
 /// that item while recomputing scenes, so this helper reapplies glyphs when playback state toggles (via status-bar hierarchy).
 enum HushMenuBarGlyphSync {
-    private static let accessibilityTitle = "Hush"
-
-    /// Reapplies the waveform / waveform.slash symbol for our item, retrying briefly until Fluid has created the `NSStatusItem`.
+    private static let accessibilityTitle = String(localized: "app.name")
     @MainActor
     static func schedule(isPlaying: Bool, retriesRemaining: Int = 8) {
         guard let image = NSImage(
@@ -40,7 +38,6 @@ enum HushMenuBarGlyphSync {
     }
 
     private static func matchesAccessibility(_ button: NSStatusBarButton, needle: String) -> Bool {
-        // NSObject KVC avoids Swift ambiguity between dynamic `accessibilityTitle` selectors on `NSStatusBarButton`.
         let axTitle = button.value(forKey: "accessibilityTitle") as? String
         let axLabel = button.value(forKey: "accessibilityLabel") as? String
         return axTitle == needle || axLabel == needle

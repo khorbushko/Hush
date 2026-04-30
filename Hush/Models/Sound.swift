@@ -3,8 +3,8 @@ import Foundation
 public struct Sound: Identifiable, Hashable, Sendable {
     /// Stable identifier used for persistence and audio routing.
     public let id: String
-    /// Human-readable name shown in the mixer UI.
-    public let name: String
+    /// Localized name shown in the mixer UI.
+    public let name: LocalizedStringResource
     /// Section the sound belongs to.
     public let category: SoundCategory
     /// Base filename in `Resources/Audio` (copied into the bundle; may flatten to `.m4a` at the bundle root).
@@ -15,7 +15,7 @@ public struct Sound: Identifiable, Hashable, Sendable {
     /// Creates a sound definition for the library catalog.
     public init(
         id: String,
-        name: String,
+        name: LocalizedStringResource,
         category: SoundCategory,
         resourceName: String,
         symbolName: String
@@ -25,6 +25,14 @@ public struct Sound: Identifiable, Hashable, Sendable {
         self.category = category
         self.resourceName = resourceName
         self.symbolName = symbolName
+    }
+
+    public static func == (lhs: Sound, rhs: Sound) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
@@ -37,28 +45,28 @@ public extension Sound {
     static let library: [Sound] = [
         Sound(
             id: "rain_window",
-            name: "Rain on window",
+            name: "sound.rain_window",
             category: .nature,
             resourceName: "rain_window",
             symbolName: "cloud.rain.fill"
         ),
         Sound(
             id: "thunderstorm_distant",
-            name: "Thunderstorm (distant)",
+            name: "sound.thunderstorm_distant",
             category: .nature,
             resourceName: "thunderstorm",
             symbolName: "cloud.bolt.fill"
         ),
         Sound(
             id: "forest_birds_wind",
-            name: "Forest (birds + wind)",
+            name: "sound.forest_birds_wind",
             category: .nature,
             resourceName: "forest",
             symbolName: "leaf.fill"
         ),
         Sound(
             id: "ocean_waves",
-            name: "Ocean waves",
+            name: "sound.ocean_waves",
             category: .nature,
             resourceName: "ocean_waves",
             symbolName: "water.waves"
@@ -66,42 +74,42 @@ public extension Sound {
         
         Sound(
             id: "coffee_shop_chatter",
-            name: "Coffee shop chatter",
+            name: "sound.coffee_shop_chatter",
             category: .cafeUrban,
             resourceName: "coffee_shop",
             symbolName: "cup.and.saucer.fill"
         ),
         Sound(
             id: "cafe",
-            name: "Coffee cafe",
+            name: "sound.cafe",
             category: .cafeUrban,
             resourceName: "cafe",
             symbolName: "mug.fill"
         ),
         Sound(
             id: "city_traffic",
-            name: "City traffic",
+            name: "sound.city_traffic",
             category: .cafeUrban,
             resourceName: "city_traffic",
             symbolName: "car.fill"
         ),
         Sound(
             id: "train_ride",
-            name: "Train ride",
+            name: "sound.train_ride",
             category: .cafeUrban,
             resourceName: "train_ride",
             symbolName: "train.side.front.car"
         ),
         Sound(
             id: "tram_ride",
-            name: "Tram ride",
+            name: "sound.tram_ride",
             category: .cafeUrban,
             resourceName: "tram_ride",
             symbolName: "tram.fill"
         ),
         Sound(
             id: "city_rain",
-            name: "City rain",
+            name: "sound.city_rain",
             category: .cafeUrban,
             resourceName: "city_rain",
             symbolName: "building.2.crop.circle.fill"
@@ -109,28 +117,28 @@ public extension Sound {
 
         Sound(
             id: "buiding_noize",
-            name: "Building noise",
+            name: "sound.buiding_noize",
             category: .focusAbstract,
             resourceName: "buiding_noize",
             symbolName: "building.2.fill"
         ),
         Sound(
             id: "pink_noise",
-            name: "Pink noise",
+            name: "sound.pink_noise",
             category: .focusAbstract,
             resourceName: "pink_noise",
             symbolName: "waveform.circle"
         ),
         Sound(
             id: "fan_white_noise",
-            name: "Fan / white noise",
+            name: "sound.fan_white_noise",
             category: .focusAbstract,
             resourceName: "fan_noise",
             symbolName: "fanblades.fill"
         ),
         Sound(
             id: "fireplace_crackle",
-            name: "Fireplace crackling",
+            name: "sound.fireplace_crackle",
             category: .focusAbstract,
             resourceName: "fireplace",
             symbolName: "flame.fill"

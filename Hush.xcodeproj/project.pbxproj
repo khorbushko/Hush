@@ -116,6 +116,35 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		155173332FA3B3D700620D61 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				5a5b5d2418fb46a490181c71cbac40ab /* PopoverRootView.swift */,
+				ac697066349f4f28accf91ca56982c76 /* HeaderView.swift */,
+				e2160cc05dff427884da15f098dfa468 /* CategorySectionView.swift */,
+				ff06aa07bb08cc09dd10ee11ff12aa13 /* PresetsView.swift */,
+				2ce9744765eb44aaa8ee630addc599be /* TimerView.swift */,
+				d04c56bffce740ceabfb81b928ae4c78 /* SoundRowView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		155173342FA3B41500620D61 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				77ac7266283a409d912a674b22c6964a /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		155173352FA3B41C00620D61 /* About */ = {
+			isa = PBXGroup;
+			children = (
+				515a284c11474fd1b792dd6b4f811063 /* AboutView.swift */,
+			);
+			path = About;
+			sourceTree = "<group>";
+		};
 		15A4D5B12FA3481A009AE407 /* Audio */ = {
 			isa = PBXGroup;
 			children = (
@@ -184,15 +213,10 @@
 		59604b40e04048928145ffe2c73d85ef /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				155173332FA3B3D700620D61 /* Home */,
+				155173342FA3B41500620D61 /* Settings */,
+				155173352FA3B41C00620D61 /* About */,
 				15A4D5D12FA37EC1009AE407 /* Components */,
-				5a5b5d2418fb46a490181c71cbac40ab /* PopoverRootView.swift */,
-				d04c56bffce740ceabfb81b928ae4c78 /* SoundRowView.swift */,
-				e2160cc05dff427884da15f098dfa468 /* CategorySectionView.swift */,
-				ac697066349f4f28accf91ca56982c76 /* HeaderView.swift */,
-				2ce9744765eb44aaa8ee630addc599be /* TimerView.swift */,
-				77ac7266283a409d912a674b22c6964a /* SettingsView.swift */,
-				515a284c11474fd1b792dd6b4f811063 /* AboutView.swift */,
-				ff06aa07bb08cc09dd10ee11ff12aa13 /* PresetsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
