@@ -1,0 +1,26 @@
+To build an app
+
+cd .../Hush
+
+BUILD:
+
+xcodebuild \
+  -scheme Hush \
+  -configuration Release \
+  -derivedDataPath build \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO
+
+-> result - build/Build/Products/Release/Hush.app
+	
+PACK
+hdiutil create -volname "Hush" \
+  -srcfolder build/Build/Products/Release/Hush.app \
+  -ov -format UDZO Hush.dmg
+or
+-> use https://github.com/sindresorhus/create-dmg
+	cd build/Build/Products/Release
+	create-dmg Hush.app --no-code-sign --dmg-title="Hush"
+	
+-> Created "Hush 1.0.0.dmg" in Release folder
