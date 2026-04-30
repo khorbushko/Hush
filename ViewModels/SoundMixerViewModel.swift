@@ -333,6 +333,18 @@ public final class SoundMixerViewModel {
         }
     }
 
+    /// Stops every playing sound and clears all enabled toggles.
+    public func stopAllSounds() {
+        for sound in Sound.library {
+            var runtime = tracks[sound.id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
+            runtime.isEnabled = false
+            tracks[sound.id] = runtime
+        }
+        DefaultsKeys.storeTracks(tracks)
+        recomputeGlobalPlayingFlag()
+        Task { await audio.fadeOutAll(stopAfter: 0.2) }
+    }
+
     /// Formats the remaining timer for header presentation.
     public func formattedCountdown(referenceDate: Date = Date()) -> String? {
         guard let end = timerEndsAt else { return nil }

@@ -54,6 +54,7 @@ public struct PresetsView: View {
                 HStack(spacing: 6) {
                     randomButton
                     addButton
+                    stopAllButton
                 }
             }
             .frame(height: 40)
@@ -105,6 +106,27 @@ private extension PresetsView {
         .disabled(!viewModel.isAudioReady)
         .opacity(viewModel.isAudioReady ? 1 : 0.35)
         .accessibilityLabel("Randomise current mix")
+    }
+
+    var stopAllButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                viewModel.stopAllSounds()
+            }
+        } label: {
+            Image(systemName: "stop.fill")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(accent)
+                .frame(width: Self.buttonSize, height: Self.buttonSize)
+                .background(
+                    accent.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!viewModel.isGloballyPlaying)
+        .opacity(viewModel.isGloballyPlaying ? 1 : 0.35)
+        .accessibilityLabel("Stop all sounds")
     }
 }
 
