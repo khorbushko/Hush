@@ -45,7 +45,11 @@ The idea came to me at my current workplace: sometimes other people’s *weird n
 
 ## How it looks
 
-![screenshot](blob/hush_app.svg)
+<p align="center">
+  <a href="">
+    <img alt="Logo" src="blob/hush_app.svg" width="300px">
+  </a>
+</p>
 
 ## Build & run
 

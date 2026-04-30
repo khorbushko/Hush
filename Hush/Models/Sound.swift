@@ -1,6 +1,5 @@
 import Foundation
 
-/// Metadata for a single bundled ambient sound that can be mixed in the engine.
 public struct Sound: Identifiable, Hashable, Sendable {
     /// Stable identifier used for persistence and audio routing.
     public let id: String

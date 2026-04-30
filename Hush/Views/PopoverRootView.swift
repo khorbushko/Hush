@@ -15,7 +15,7 @@ public struct PopoverRootView: View {
     }
 
     var height: CGFloat {
-        showSettings ? 450 : 540
+        showSettings ? 450 : 560
     }
 
     public var body: some View {

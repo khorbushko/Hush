@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0e35ff4c341649489f43da96d0436d05 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ac7266283a409d912a674b22c6964a /* SettingsView.swift */; };
 		1122334455667788990011223344556677 /* SoundPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = aa07bb08cc09dd10ee11ff12aa13bb14 /* SoundPreset.swift */; };
+		155173322FA39C0B00620D61 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 155173312FA39C0B00620D61 /* Localizable.xcstrings */; };
 		15A4D5892FA3450E009AE407 /* FluidMenuBarExtra in Frameworks */ = {isa = PBXBuildFile; productRef = a91f2d3c4b5e6f708192a3b4c5d6e7f1 /* FluidMenuBarExtra */; };
 		15A4D5B32FA3481A009AE407 /* train_ride.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 15A4D5AF2FA3481A009AE407 /* train_ride.m4a */; };
 		15A4D5B42FA3481A009AE407 /* ocean_waves.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 15A4D5AB2FA3481A009AE407 /* ocean_waves.m4a */; };
@@ -46,6 +47,7 @@
 
 /* Begin PBXFileReference section */
 		090fe098844b450f9d2fa0208f4f6345 /* Sound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sound.swift; sourceTree = "<group>"; };
+		155173312FA39C0B00620D61 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		15A4D5A62FA3481A009AE407 /* city_rain.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = city_rain.m4a; sourceTree = "<group>"; };
 		15A4D5A72FA3481A009AE407 /* coffee_shop.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = coffee_shop.m4a; sourceTree = "<group>"; };
 		15A4D5A82FA3481A009AE407 /* fan_noise.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = fan_noise.m4a; sourceTree = "<group>"; };
@@ -164,6 +166,7 @@
 			children = (
 				15A4D5D42FA39377009AE407 /* CHANGELOG.md */,
 				15A4D5B12FA3481A009AE407 /* Audio */,
+				155173312FA39C0B00620D61 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -256,6 +259,7 @@
 			knownRegions = (
 				en,
 				Base,
+				uk,
 			);
 			mainGroup = 6047fb5979bd4459b269fbef76057b8c;
 			packageReferences = (
@@ -277,6 +281,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				15A4D5CE2FA37DAC009AE407 /* tram_ride.m4a in Resources */,
+				155173322FA39C0B00620D61 /* Localizable.xcstrings in Resources */,
 				15A4D5CF2FA37DAC009AE407 /* cafe.m4a in Resources */,
 				15A4D5D02FA37DAC009AE407 /* city_traffic.m4a in Resources */,
 				15A4D5D52FA39377009AE407 /* CHANGELOG.md in Resources */,
@@ -338,6 +343,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -421,6 +427,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
