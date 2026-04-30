@@ -188,25 +188,35 @@ private extension PopoverRootView {
 }
 
 // MARK: – Theme helpers
+//
+// Colors derived from the app icon palette:
+//   background  #272B50  deep navy
+//   bars body   #7A8EC8  periwinkle
+//   bars top    #A5C0EA  ice blue   ← dark-mode accent
+//   waves       #7878C0  indigo
+//   cornflower  #5C7DC8              ← light-mode accent
 
 private enum HushTheme {
-    static let sand = Color(red: 0.784, green: 0.663, blue: 0.494)
-    static let amberNight = Color(red: 0.910, green: 0.722, blue: 0.427)
-    static let textLight = Color(red: 0.110, green: 0.110, blue: 0.118)
+    /// Cornflower blue — legible accent on light/white backgrounds (light mode).
+    static let cornflower = Color(red: 0.361, green: 0.490, blue: 0.784)   // #5C7DC8
+    /// Ice blue — luminous accent for dark/navy surfaces (dark mode).
+    static let iceBlue    = Color(red: 0.647, green: 0.753, blue: 0.918)   // #A5C0EA
+    /// Near-black with a faint navy cast — body text on light backgrounds.
+    static let navyInk    = Color(red: 0.100, green: 0.105, blue: 0.165)   // #1A1B2A
 }
 
 private func hushChromeAccent(for scheme: ColorScheme) -> Color {
-    scheme == .dark ? HushTheme.amberNight : HushTheme.sand
+    scheme == .dark ? HushTheme.iceBlue : HushTheme.cornflower
 }
 
 private func primaryText(for scheme: ColorScheme) -> Color {
-    scheme == .dark ? Color.primary : HushTheme.textLight
+    scheme == .dark ? Color.primary : HushTheme.navyInk
 }
 
 // MARK: – Environment keys
 
 struct HushAccentKey: EnvironmentKey {
-    static let defaultValue: Color = HushTheme.sand
+    static let defaultValue: Color = HushTheme.cornflower
 }
 
 struct HushPrimaryKey: EnvironmentKey {
