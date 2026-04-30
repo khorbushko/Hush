@@ -35,7 +35,11 @@ public struct PresetsView: View {
                                 guard viewModel.isAudioReady else { return }
                                 viewModel.loadPreset(preset)
                             } label: {
-                                PresetCard(preset: preset, colorScheme: colorScheme)
+                                PresetCard(
+                                    preset: preset,
+                                    colorScheme: colorScheme,
+                                    isLoading: viewModel.loadingPresetID == preset.id
+                                )
                             }
                             .buttonStyle(.plain)
                             .simultaneousGesture(
@@ -136,23 +140,46 @@ private extension PresetsView {
 private struct PresetCard: View {
     let preset: SoundPreset
     let colorScheme: ColorScheme
+    let isLoading: Bool
 
     private static let size: CGFloat = 32
     private static let cornerRadius: CGFloat = 8
 
     var body: some View {
-        symbolGrid
-            .frame(width: Self.size, height: Self.size)
-            .background(cardColor, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-            .accessibilityLabel("Preset with \(preset.symbolNames.count) sound\(preset.symbolNames.count == 1 ? "" : "s")")
-            .accessibilityHint("Tap to load, hold to delete")
+        ZStack {
+            symbolGrid
+                .opacity(isLoading ? 0.25 : 1)
+
+            if isLoading {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(fg.opacity(0.8))
+            }
+        }
+        .frame(width: Self.size, height: Self.size)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+            shape
+                .fill(Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.06))
+                .overlay {
+                    shape.fill(tintColor.opacity(colorScheme == .dark ? 0.35 : 0.22))
+                }
+                .overlay {
+                    shape.strokeBorder(
+                        Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08),
+                        lineWidth: 0.5
+                    )
+                }
+        }
+        .accessibilityLabel("Preset with \(preset.symbolNames.count) sound\(preset.symbolNames.count == 1 ? "" : "s")")
+        .accessibilityHint("Tap to load, hold to delete")
     }
 
-    private var cardColor: Color {
+    private var tintColor: Color {
         Color(
             hue: preset.hue,
-            saturation: colorScheme == .dark ? 0.30 : 0.22,
-            brightness: colorScheme == .dark ? 0.45 : 0.95
+            saturation: colorScheme == .dark ? 0.28 : 0.18,
+            brightness: colorScheme == .dark ? 0.55 : 0.96
         )
     }
 

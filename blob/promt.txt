@@ -1,0 +1,181 @@
+Build a macOS menu bar application called "Hush" — an ambient sound mixer that helps users create a personal acoustic environment to mask distracting or loud surroundings.
+
+---
+
+## PLATFORM & ARCHITECTURE
+
+- macOS 14+ (Sonoma) target
+- Language: Swift 5.9+
+- UI: AppKit for the menu bar item + NSPopover; SwiftUI for all panel content
+- Audio: AVFoundation (AVAudioEngine + AVAudioPlayerNode for mixing)
+- Package manager: Swift Package Manager only — no CocoaPods, no Carthage
+- Project structure: well-organized with clear separation of concerns (Models, ViewModels, Views, Services, Resources)
+
+---
+
+## ENTRY POINT & MENU BAR BEHAVIOR
+
+- App runs as an agent (LSUIElement = YES in Info.plist — no Dock icon, no main window)
+- NSStatusItem with a dynamic SF Symbol icon: "waveform" when playing, "waveform.slash" when stopped
+- Clicking the status bar icon opens an NSPopover anchored to the status item
+- Popover is transient: clicking outside dismisses it
+- App launches at login (offer toggle in Settings)
+
+---
+
+## POPOVER WINDOW
+
+- Size: 320×520pt, no resize
+- Built entirely in SwiftUI inside NSHostingView
+- Respects system light/dark mode with a manual override toggle
+- Visual style: follows macOS Sonoma HIG — use materials (.regularMaterial), native vibrancy, rounded corners (12pt), subtle shadow
+- Custom app icon in the header row, title "Hush", version string
+
+---
+
+## SOUND LIBRARY
+
+Include exactly these 12 ambient sounds, grouped into 3 categories. All audio files are looping, seamlessly looped .mp3 or .m4a, bundled in the app target under a "Sounds" folder:
+
+**Nature**
+1. Rain on window
+2. Thunderstorm (distant)
+3. Forest (birds + wind)
+4. Ocean waves
+
+**Café & Urban**
+5. Coffee shop chatter (low, indistinct)
+6. Vinyl crackle + soft jazz undertone
+7. Train ride (rhythmic clatter)
+8. City rain (street + drops)
+
+**Focus & Abstract**
+9. Brown noise
+10. Pink noise
+11. Fan / white noise
+12. Fireplace crackling
+
+Each sound has:
+- A unique SF Symbol icon (pick the most semantically fitting one)
+- A display name
+- A toggle (on/off)
+- An individual volume slider (0–100%, default 50%)
+- Smooth fade-in/out (300ms) when toggled
+
+---
+
+## AUDIO ENGINE
+
+- Use AVAudioEngine with one AVAudioPlayerNode per sound
+- All nodes connect to a single AVAudioMixerNode → engine output
+- Each sound loops indefinitely using scheduleBuffer(_:at:options:completionHandler:) with .loops option
+- Preload all audio buffers at launch in a background Task
+- Master volume: a top-level slider affecting the engine's mainMixerNode.outputVolume
+- Gracefully handle audio interruptions (e.g., phone call via Continuity)
+
+---
+
+## TIMER
+
+- Optional sleep timer: Off / 15 min / 30 min / 45 min / 60 min / Custom
+- When active, show a countdown in the header
+- When timer expires, fade all sounds out over 3 seconds, then stop the engine
+- Custom option opens an inline picker (hours + minutes wheels)
+
+---
+
+## SETTINGS PANEL
+
+Accessible via a gear icon in the popover header. Implemented as a NavigationStack push inside the popover (not a separate window).
+
+Settings include:
+- Launch at login toggle (uses ServiceManagement / SMAppService)
+- Default master volume (slider)
+- Timer default duration (picker)
+- Notification when timer ends (UNUserNotificationCenter)
+- "Reset to defaults" button
+
+---
+
+## ADDITIONAL HEADER CONTROLS
+
+Row of icon buttons at the top of the popover:
+- Settings (gear) — navigates to Settings panel
+- Theme toggle (sun/moon) — overrides system appearance for the popover only
+- About (info.circle) — shows a small sheet: app name, version, credits, a link to a placeholder website
+- Quit (power) — calls NSApplication.shared.terminate(nil) after a 0.2s delay
+
+---
+
+## THEME & APPEARANCE
+
+- Light mode: background uses .regularMaterial, text primary #1C1C1E, accent color a warm sand #C8A97E
+- Dark mode: background uses .ultraThinMaterial, accent color a soft amber #E8B86D
+- Manual override stored in AppStorage("colorScheme") and applied via .preferredColorScheme()
+- Category section headers use SF Pro Rounded (via .fontDesign(.rounded))
+- All interactive controls use native SwiftUI Slider and Toggle with custom tint using .tint()
+
+---
+
+## STATE MANAGEMENT
+
+- Single ObservableObject `SoundMixerViewModel` owns all sound states, master volume, timer state
+- Persist active sounds + individual volumes to UserDefaults via AppStorage / @AppStorage where appropriate
+- Restore last session on launch (sounds that were playing resume at saved volumes)
+
+---
+
+## SWIFT PACKAGE DEPENDENCIES
+
+Add these packages via Swift Package Manager in Package.swift or Xcode's package resolver:
+
+1. **None required** for core audio (AVFoundation is sufficient)
+2. Optional: if any launch-at-login logic needs wrapping, use Apple's own SMAppService (macOS 13+) — no third-party package needed
+
+Keep dependencies minimal. Only add an SPM package if it provides something genuinely not available in Apple frameworks.
+
+---
+
+## FILE / FOLDER STRUCTURE
+Hush/
+├── HushApp.swift                  // @main, NSApplicationDelegate, status item setup
+├── AppDelegate.swift              // NSStatusItem, NSPopover wiring
+├── Models/
+│   ├── Sound.swift                // Sound struct: id, name, category, filename, sfSymbol
+│   └── SoundCategory.swift        // Enum: nature, cafe, focus
+├── ViewModels/
+│   └── SoundMixerViewModel.swift  // ObservableObject: sounds[], masterVolume, timer
+├── Services/
+│   └── AudioEngineService.swift   // AVAudioEngine wrapper, load/play/stop/volume
+├── Views/
+│   ├── PopoverRootView.swift      // Top-level SwiftUI view inside the popover
+│   ├── SoundRowView.swift         // Single sound row: icon, name, toggle, slider
+│   ├── CategorySectionView.swift  // Section header + list of SoundRowViews
+│   ├── HeaderView.swift           // App name + icon buttons row
+│   ├── TimerView.swift            // Sleep timer control
+│   ├── SettingsView.swift         // Settings panel
+│   └── AboutView.swift            // About sheet
+├── Resources/
+│   └── Sounds/                    // 12 bundled .m4a files
+└── HushApp.entitlements
+
+---
+
+## CODE QUALITY REQUIREMENTS
+
+- No force-unwraps (`!`) except where absolutely safe (e.g., known bundle resources)
+- Use `async/await` for all audio loading
+- Use `@MainActor` where UI updates are made
+- Document every public type and method with `///` doc comments
+- No third-party dependencies unless genuinely necessary
+- The code must compile and run without modification
+
+---
+
+For the actual .m4a sound files, sites like freesound.org (CC0 licensed) or Pixabay are good sources — search for seamlessly looped versions.
+
+---
+
+## DELIVERABLE
+
+Produce the complete, working source code for every file listed above. Include placeholder .m4a filenames with a comment explaining the audio spec (loop points, recommended bitrate 128kbps AAC, 44.1kHz stereo). Output each file clearly labeled. The app must compile on Xcode 15+ targeting macOS 14.

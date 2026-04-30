@@ -136,6 +136,9 @@ public final class SoundMixerViewModel {
         didSet { DefaultsKeys.storePresets(presets) }
     }
 
+    /// When non-nil, indicates the preset currently being applied (for UI loading indicators).
+    public private(set) var loadingPresetID: UUID?
+
     // MARK: – Init
 
     /// Creates a fully wired mixer with bundled sounds and audio services.
@@ -158,6 +161,7 @@ public final class SoundMixerViewModel {
         launchAtLoginEnabled = Self.readLaunchAtLoginState()
         notifyOnTimerEnd = DefaultsKeys.loadNotifyOnEnd()
         presets = DefaultsKeys.loadPresets()
+        loadingPresetID = nil
         bindResumeObserver()
         Task { await bootstrapAudio() }
     }
@@ -290,14 +294,11 @@ public final class SoundMixerViewModel {
         }
         DefaultsKeys.storeTracks(tracks)
         recomputeGlobalPlayingFlag()
-        Task {
-            for sound in Sound.library where preset.tracks[sound.id] == nil {
-                await audio.stopSound(id: sound.id, fadeDuration: 0.25)
-            }
-            for sound in Sound.library {
-                guard let volume = preset.tracks[sound.id] else { continue }
-                await audio.playSound(id: sound.id, targetLinearVolume: Float(volume))
-            }
+        loadingPresetID = preset.id
+        Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadingPresetID = nil }
+            await self.applyPresetAudio(preset)
         }
     }
 
@@ -323,12 +324,20 @@ public final class SoundMixerViewModel {
         DefaultsKeys.storeTracks(tracks)
         recomputeGlobalPlayingFlag()
         Task {
-            for sound in Sound.library where !selected.contains(sound.id) {
-                await audio.stopSound(id: sound.id, fadeDuration: 0.25)
+            let toStop = Sound.library.map(\.id).filter { !selected.contains($0) }
+            await withTaskGroup(of: Void.self) { group in
+                for id in toStop {
+                    group.addTask { await self.audio.stopSound(id: id, fadeDuration: 0.15) }
+                }
             }
-            for sound in Sound.library {
-                guard let runtime = tracks[sound.id], runtime.isEnabled else { continue }
-                await audio.playSound(id: sound.id, targetLinearVolume: Float(runtime.normalizedVolume))
+            let toPlay = selected.compactMap { id -> (String, Float)? in
+                guard let runtime = self.tracks[id], runtime.isEnabled else { return nil }
+                return (id, Float(runtime.normalizedVolume))
+            }
+            await withTaskGroup(of: Void.self) { group in
+                for item in toPlay {
+                    group.addTask { await self.audio.playSound(id: item.0, targetLinearVolume: item.1) }
+                }
             }
         }
     }
@@ -458,6 +467,22 @@ private extension SoundMixerViewModel {
         content.sound = .default
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         try? await center.add(request)
+    }
+
+    func applyPresetAudio(_ preset: SoundPreset) async {
+        let toStop = Sound.library.map(\.id).filter { preset.tracks[$0] == nil }
+        await withTaskGroup(of: Void.self) { group in
+            for id in toStop {
+                group.addTask { await self.audio.stopSound(id: id, fadeDuration: 0.15) }
+            }
+        }
+
+        let toPlay = preset.tracks.map { (id: $0.key, normalizedVolume: Float($0.value)) }
+        await withTaskGroup(of: Void.self) { group in
+            for item in toPlay {
+                group.addTask { await self.audio.playSound(id: item.id, targetLinearVolume: item.normalizedVolume) }
+            }
+        }
     }
 }
 
