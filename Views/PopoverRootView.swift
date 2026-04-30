@@ -75,6 +75,8 @@ private extension PopoverRootView {
             masterVolumeRow
             TimerView(viewModel: viewModel)
                 .padding(.top, 4)
+            PresetsView(viewModel: viewModel)
+                .padding(.top, 4)
             Divider()
                 .blendMode(.softLight)
             scrollContent

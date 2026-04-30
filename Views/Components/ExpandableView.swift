@@ -1,5 +1,23 @@
 import SwiftUI
 
+/// Colours and fonts injected into ``ExpandableView``'s header row.
+/// Defined as a top-level type so callers don't need a generic placeholder to reference it.
+public struct ExpandableStyle {
+    public var titleFont: Font
+    public var titleColor: Color
+    public var chevronColor: Color
+
+    public init(
+        titleFont: Font  = .footnote.weight(.semibold),
+        titleColor: Color  = Color.primary.opacity(0.75),
+        chevronColor: Color = Color.primary.opacity(0.45)
+    ) {
+        self.titleFont = titleFont
+        self.titleColor = titleColor
+        self.chevronColor = chevronColor
+    }
+}
+
 /// A disclosure-style container with an animated chevron and spring-driven expand/collapse.
 ///
 /// All visual parameters are injected via ``ExpandableView/Style`` so the view has zero
@@ -22,24 +40,7 @@ import SwiftUI
 public struct ExpandableView<Content: View>: View {
 
     // MARK: – Style
-
-    /// Encapsulates every colour and font token used by the header row.
-    /// All properties carry defaults so callers only override what they need.
-    public struct Style {
-        public var titleFont: Font
-        public var titleColor: Color
-        public var chevronColor: Color
-
-        public init(
-            titleFont: Font = .footnote.weight(.semibold),
-            titleColor: Color = Color.primary.opacity(0.75),
-            chevronColor: Color = Color.primary.opacity(0.45)
-        ) {
-            self.titleFont = titleFont
-            self.titleColor = titleColor
-            self.chevronColor = chevronColor
-        }
-    }
+    public typealias Style = ExpandableStyle
 
     // MARK: – Properties
 

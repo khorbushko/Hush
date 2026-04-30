@@ -131,6 +131,11 @@ public final class SoundMixerViewModel {
     /// Sound IDs with a decoded PCM buffer (mirrored from ``AudioEngineService`` after preload for sync UI lookups).
     public private(set) var loadedSoundIDs: Set<String> = []
 
+    /// Saved sound-mix presets, persisted in UserDefaults.
+    public var presets: [SoundPreset] {
+        didSet { DefaultsKeys.storePresets(presets) }
+    }
+
     // MARK: – Init
 
     /// Creates a fully wired mixer with bundled sounds and audio services.
@@ -152,6 +157,7 @@ public final class SoundMixerViewModel {
         defaultTimerStored = DefaultsKeys.loadSettingsDefaultTimer()
         launchAtLoginEnabled = Self.readLaunchAtLoginState()
         notifyOnTimerEnd = DefaultsKeys.loadNotifyOnEnd()
+        presets = DefaultsKeys.loadPresets()
         bindResumeObserver()
         Task { await bootstrapAudio() }
     }
@@ -253,6 +259,78 @@ public final class SoundMixerViewModel {
         Task { await audio.fadeOutAll(stopAfter: 0.2) }
         recomputeGlobalPlayingFlag()
         NotificationCenter.default.post(name: .hushReloadStoredChrome, object: nil)
+    }
+
+    /// Captures currently active sounds and their volumes as a new preset.
+    public func saveCurrentAsPreset() {
+        let activeTracks = tracks.compactMapValues { runtime -> Double? in
+            runtime.isEnabled ? runtime.normalizedVolume : nil
+        }
+        guard !activeTracks.isEmpty else { return }
+        let symbolNames = Sound.library
+            .filter { activeTracks[$0.id] != nil }
+            .map(\.symbolName)
+        let preset = SoundPreset(
+            tracks: activeTracks,
+            symbolNames: symbolNames,
+            hue: Double.random(in: 0 ... 1)
+        )
+        presets.append(preset)
+    }
+
+    /// Enables the sounds in the preset (disabling all others) and starts playback.
+    public func loadPreset(_ preset: SoundPreset) {
+        for sound in Sound.library {
+            var runtime = tracks[sound.id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
+            runtime.isEnabled = preset.tracks[sound.id] != nil
+            if let volume = preset.tracks[sound.id] {
+                runtime.normalizedVolume = volume
+            }
+            tracks[sound.id] = runtime
+        }
+        DefaultsKeys.storeTracks(tracks)
+        recomputeGlobalPlayingFlag()
+        Task {
+            for sound in Sound.library where preset.tracks[sound.id] == nil {
+                await audio.stopSound(id: sound.id, fadeDuration: 0.25)
+            }
+            for sound in Sound.library {
+                guard let volume = preset.tracks[sound.id] else { continue }
+                await audio.playSound(id: sound.id, targetLinearVolume: Float(volume))
+            }
+        }
+    }
+
+    /// Removes a preset permanently.
+    public func deletePreset(_ preset: SoundPreset) {
+        presets.removeAll { $0.id == preset.id }
+    }
+
+    /// Randomly enables 1–4 available sounds with randomised volumes, disabling everything else.
+    public func randomizeMix() {
+        let available = Sound.library.filter { loadedSoundIDs.contains($0.id) }
+        guard !available.isEmpty else { return }
+        let pickCount = Int.random(in: 1 ... min(4, available.count))
+        let selected = Set(available.shuffled().prefix(pickCount).map(\.id))
+        for sound in Sound.library {
+            var runtime = tracks[sound.id] ?? SoundTrackRuntime(isEnabled: false, normalizedVolume: 0.5)
+            runtime.isEnabled = selected.contains(sound.id)
+            if selected.contains(sound.id) {
+                runtime.normalizedVolume = Double.random(in: 0.30 ... 0.80)
+            }
+            tracks[sound.id] = runtime
+        }
+        DefaultsKeys.storeTracks(tracks)
+        recomputeGlobalPlayingFlag()
+        Task {
+            for sound in Sound.library where !selected.contains(sound.id) {
+                await audio.stopSound(id: sound.id, fadeDuration: 0.25)
+            }
+            for sound in Sound.library {
+                guard let runtime = tracks[sound.id], runtime.isEnabled else { continue }
+                await audio.playSound(id: sound.id, targetLinearVolume: Float(runtime.normalizedVolume))
+            }
+        }
     }
 
     /// Formats the remaining timer for header presentation.
@@ -381,6 +459,7 @@ private enum DefaultsKeys {
     private static let defaultsMaster = "hush.defaults.settings.master"
     private static let defaultsTimer = "hush.defaults.settings.timer"
     private static let notify = "hush.defaults.notify.timer"
+    private static let presetsArchive = "hush.defaults.presets.json"
 
     static func loadTracks() -> [String: SoundTrackRuntime] {
         guard
@@ -456,8 +535,23 @@ private enum DefaultsKeys {
         UserDefaults.standard.set(value, forKey: notify)
     }
 
+    static func loadPresets() -> [SoundPreset] {
+        guard
+            let data = UserDefaults.standard.data(forKey: presetsArchive),
+            let decoded = try? JSONDecoder().decode([SoundPreset].self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    static func storePresets(_ presets: [SoundPreset]) {
+        if let data = try? JSONEncoder().encode(presets) {
+            UserDefaults.standard.set(data, forKey: presetsArchive)
+        }
+    }
+
     static func resetAll() {
-        [master, tracksArchive, timer, custom, defaultsMaster, defaultsTimer, notify, "colorScheme"]
+        [master, tracksArchive, timer, custom, defaultsMaster, defaultsTimer, notify,
+         presetsArchive, "colorScheme"]
             .forEach { UserDefaults.standard.removeObject(forKey: $0) }
         UserDefaults.standard.synchronize()
     }

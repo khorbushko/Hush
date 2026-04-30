@@ -18,7 +18,7 @@ public struct TimerView: View {
         ExpandableView(
             "Sleep timer",
             isExpanded: $isExpanded,
-            style: ExpandableView.Style(
+            style: ExpandableStyle(
                 titleColor: label.opacity(0.75),
                 chevronColor: label.opacity(0.45)
             )

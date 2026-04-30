@@ -109,11 +109,11 @@ public extension Sound {
         ),
 
         Sound(
-            id: "brown_noise",
-            name: "Brown noise",
+            id: "buiding_noize",
+            name: "Building noise",
             category: .focusAbstract,
-            resourceName: "brown_noise",
-            symbolName: "waveform.path.ecg"
+            resourceName: "buiding_noize",
+            symbolName: "building.2.fill"
         ),
         Sound(
             id: "pink_noise",
