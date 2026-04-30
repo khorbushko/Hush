@@ -64,8 +64,8 @@ private extension PopoverRootView {
                 clock: $clock,
                 onOpenSettings: { showSettings = true },
                 onOpenCoffee: openCoffeeJar,
-                onToggleTheme: onToogleTheme,
-                onOpenAbout: cycleTheme,
+                onToggleTheme: cycleTheme,
+                onOpenAbout: onOpenAbout,
                 onBugReport: openBugReport,
                 onQuit: scheduleTerminate
             )
@@ -152,7 +152,7 @@ private extension PopoverRootView {
         NSWorkspace.shared.open(url)
     }
 
-    func onToogleTheme() {
+    func onOpenAbout() {
 
         let locale = viewModel.appLanguage.localeOverride ?? Locale.current
         AboutWindowManager.open(
