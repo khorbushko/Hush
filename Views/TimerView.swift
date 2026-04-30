@@ -1,21 +1,43 @@
 import SwiftUI
 
 /// Sleep timer controls surfaced under the master fader.
+///
+/// Wraps ``ExpandableView`` and auto-collapses when the active timer ends.
 public struct TimerView: View {
-    /// `@Bindable` exposes `$viewModel.timerPreset` binding syntax for an `@Observable` object.
     @Bindable private var viewModel: SoundMixerViewModel
     @Environment(\.hushPrimaryLabel) private var label
     @Environment(\.hushAccent) private var accent
+
+    @State private var isExpanded = false
 
     public init(viewModel: SoundMixerViewModel) {
         self.viewModel = viewModel
     }
 
     public var body: some View {
+        ExpandableView(
+            "Sleep timer",
+            isExpanded: $isExpanded,
+            style: ExpandableView.Style(
+                titleColor: label.opacity(0.75),
+                chevronColor: label.opacity(0.45)
+            )
+        ) {
+            controls
+        }
+        // No `withAnimation` needed — ExpandableView's implicit animation on `isExpanded`
+        // handles the collapse transition uniformly whether triggered by tap or timer end.
+        .onChange(of: viewModel.timerEndsAt) { _, newValue in
+            if newValue == nil {
+                isExpanded = false
+            }
+        }
+    }
+}
+
+private extension TimerView {
+    var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Sleep timer")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(label.opacity(0.75))
             Picker("Preset", selection: $viewModel.timerPreset) {
                 ForEach(SleepTimerPreset.allCases) { preset in
                     Text(preset.menuTitle).tag(preset)
@@ -70,9 +92,7 @@ public struct TimerView: View {
             }
         }
     }
-}
 
-private extension TimerView {
     var customSelectionInvalid: Bool {
         viewModel.timerPreset == .custom && viewModel.customTimerMinutesTotal <= 0
     }

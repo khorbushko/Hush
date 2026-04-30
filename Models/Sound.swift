@@ -64,6 +64,7 @@ public extension Sound {
             resourceName: "ocean_waves",
             symbolName: "water.waves"
         ),
+        
         Sound(
             id: "coffee_shop_chatter",
             name: "Coffee shop chatter",
@@ -72,17 +73,31 @@ public extension Sound {
             symbolName: "cup.and.saucer.fill"
         ),
         Sound(
-            id: "vinyl_jazz",
-            name: "Vinyl + soft jazz",
+            id: "cafe",
+            name: "Coffee cafe",
             category: .cafeUrban,
-            resourceName: "vinyl_jazz",
-            symbolName: "record.circle.fill"
+            resourceName: "cafe",
+            symbolName: "mug.fill"
+        ),
+        Sound(
+            id: "city_traffic",
+            name: "City traffic",
+            category: .cafeUrban,
+            resourceName: "city_traffic",
+            symbolName: "car.fill"
         ),
         Sound(
             id: "train_ride",
             name: "Train ride",
             category: .cafeUrban,
             resourceName: "train_ride",
+            symbolName: "train.side.front.car"
+        ),
+        Sound(
+            id: "tram_ride",
+            name: "Tram ride",
+            category: .cafeUrban,
+            resourceName: "tram_ride",
             symbolName: "tram.fill"
         ),
         Sound(
@@ -92,6 +107,7 @@ public extension Sound {
             resourceName: "city_rain",
             symbolName: "building.2.crop.circle.fill"
         ),
+
         Sound(
             id: "brown_noise",
             name: "Brown noise",

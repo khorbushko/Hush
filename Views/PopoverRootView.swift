@@ -214,23 +214,9 @@ private func primaryText(for scheme: ColorScheme) -> Color {
 }
 
 // MARK: – Environment keys
-
-struct HushAccentKey: EnvironmentKey {
-    static let defaultValue: Color = HushTheme.cornflower
-}
-
-struct HushPrimaryKey: EnvironmentKey {
-    static let defaultValue: Color = .primary
-}
+// `@Entry` macro back-deploys via Xcode 16 and replaces manual EnvironmentKey boilerplate.
 
 extension EnvironmentValues {
-    var hushAccent: Color {
-        get { self[HushAccentKey.self] }
-        set { self[HushAccentKey.self] = newValue }
-    }
-
-    var hushPrimaryLabel: Color {
-        get { self[HushPrimaryKey.self] }
-        set { self[HushPrimaryKey.self] = newValue }
-    }
+    @Entry var hushAccent: Color = HushTheme.cornflower
+    @Entry var hushPrimaryLabel: Color = .primary
 }
